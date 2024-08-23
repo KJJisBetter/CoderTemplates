@@ -15,17 +15,8 @@ This Coder template provisions a Docker container tailored for Ruby on Rails dev
 
 ## Prerequisites
 
-1. Coder server running on a VM with Docker installed
-2. The `coder` user added to the Docker group:
-
-```sh
-# Add coder user to Docker group
-sudo usermod -aG docker coder
-# Restart Coder server
-sudo systemctl restart coder
-# Test Docker access
-sudo -u coder docker ps
-```
+1. A running Coder server (see [Coder's documentation](https://coder.com/docs/v2/latest/install) for installation instructions)
+2. Docker installed and configured on the Coder server
 
 ## Usage
 
