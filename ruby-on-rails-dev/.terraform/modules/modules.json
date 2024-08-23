@@ -1,0 +1,1 @@
+{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"vault","Source":"registry.coder.com/modules/hcp-vault-secrets/coder","Version":"1.0.7","Dir":".terraform/modules/vault"}]}

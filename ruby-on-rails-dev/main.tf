@@ -21,12 +21,17 @@ module "vault" {
   agent_id   = coder_agent.main.id
   app_name   = "Coder"
   project_id = var.project_id
-  secrets    = ["postgresql_ip", "admin_password"]
+  secrets    = var.vault_secrets
 }
 
 variable "project_id" {
   type      = string
   description = "PROJECT ID"
+}
+
+variable "vault_secrets" {
+  type        = list(string)
+  description = "List of secret names to fetch from Vault"
 }
 
 output "vault_module" {
