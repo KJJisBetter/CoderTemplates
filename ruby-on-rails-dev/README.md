@@ -101,16 +101,17 @@ This project showcases an advanced Ruby on Rails development environment templat
 
    ```bash
    coder template push ruby-on-rails-dev
-   Replace ruby-on-rails-dev with the actual name of your template
    ```
+
+   Replace ruby-on-rails-dev with the actual name of your template
 
    b. Using the Web UI:
 
-   Navigate to the template in the Coder web interface
-   Click on "Build" to create a new version
-   Review the changes and click "Publish" to make the new version available
+   - Navigate to the template in the Coder web interface
+   - Click on "Build" to create a new version
+   - Review the changes and click "Publish" to make the new version available
 
-Create a new workspace or update an existing one to use the new template version 4. Create a new workspace or update an existing one to use the new template version
+4. Create a new workspace or update an existing one to use the new template version
 
 ### Environment Variables
 
