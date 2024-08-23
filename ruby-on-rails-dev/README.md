@@ -9,7 +9,7 @@ This Coder template provisions a Docker container tailored for Ruby on Rails dev
 - Ruby installation with customizable version
 - Rails setup with optional new application creation
 - PostgreSQL database integration (optional)
-- Custom Zsh environment with productivity tools (optional)
+- Custom Zsh environment with productivity tools (optional, using [this script](https://github.com/KJJisBetter/personal-zsh-script))
 - VS Code with Ruby extensions
 - Persistent home directory
 
@@ -41,10 +41,9 @@ sudo -u coder docker ps
 ## Architecture
 
 This template provisions:
-
 - A custom Docker image (built locally)
 - A Docker container (ephemeral)
-- A Docker volume (persistent for `/home/coder`)
+- A Docker volume (persistent for `/home/{{workspace_owner}}`)
 
 Note: Only the home directory persists between workspace restarts. To add permanent tools, modify the Dockerfile.
 
