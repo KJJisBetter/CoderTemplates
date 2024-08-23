@@ -1,48 +1,89 @@
----
-display_name: Docker Containers
-description: Provision Docker containers as Coder workspaces
-icon: ../../../site/static/icon/docker.png
-maintainer_github: coder
-verified: true
-tags: [docker, container]
----
+# Ruby on Rails Development Environment with Docker
 
-# Remote Development on Docker Containers
+This Coder template provisions a Docker container tailored for Ruby on Rails development, providing a consistent and reproducible environment for your projects.
 
-Provision Docker containers as [Coder workspaces](https://coder.com/docs/workspaces) with this example template.
+![Ruby on Rails Logo](https://rubyonrails.org/assets/images/opengraph.png)
 
-<!-- TODO: Add screenshot -->
+## Features
+
+- Ruby installation with customizable version
+- Rails setup with optional new application creation
+- PostgreSQL database integration (optional)
+- Custom Zsh environment with productivity tools (optional)
+- VS Code with Ruby extensions
+- Persistent home directory
 
 ## Prerequisites
 
-### Infrastructure
-
-The VM you run Coder on must have a running Docker socket and the `coder` user must be added to the Docker group:
+1. Coder server running on a VM with Docker installed
+2. The `coder` user added to the Docker group:
 
 ```sh
 # Add coder user to Docker group
-sudo adduser coder docker
-
+sudo usermod -aG docker coder
 # Restart Coder server
 sudo systemctl restart coder
-
-# Test Docker
+# Test Docker access
 sudo -u coder docker ps
 ```
 
+## Usage
+
+1. Import this template into your Coder deployment
+2. Create a new workspace using this template
+3. Configure workspace options:
+   - Ruby version
+   - Rails application setup
+   - Database choice
+   - Custom Zsh environment
+   - VS Code extensions
+
 ## Architecture
 
-This template provisions the following resources:
+This template provisions:
 
-- Docker image (built by Docker socket and kept locally)
-- Docker container pod (ephemeral)
-- Docker volume (persistent on `/home/coder`)
+- A custom Docker image (built locally)
+- A Docker container (ephemeral)
+- A Docker volume (persistent for `/home/coder`)
 
-This means, when the workspace restarts, any tools or files outside of the home directory are not persisted. To pre-bake tools into the workspace (e.g. `python3`), modify the container image. Alternatively, individual developers can [personalize](https://coder.com/docs/dotfiles) their workspaces with dotfiles.
+Note: Only the home directory persists between workspace restarts. To add permanent tools, modify the Dockerfile.
 
-> **Note**
-> This template is designed to be a starting point! Edit the Terraform to extend the template to support your use case.
+## Customization
 
-### Editing the image
+### Modifying the Docker Image
 
-Edit the `Dockerfile` and run `coder templates push` to update workspaces.
+1. Edit the `Dockerfile` in the `build` directory
+2. Update the template:
+   ```
+   coder template push
+   ```
+
+### Environment Variables
+
+Sensitive information and configuration options are managed through environment variables. Ensure these are set in your Coder deployment:
+
+- `TF_VAR_project_id`: Your project ID for Vault integration
+- Additional variables as needed (see `variables.tf`)
+
+## Development Workflow
+
+1. Connect to your workspace using SSH or the web IDE
+2. Your Rails project will be available in the home directory
+3. Use standard Rails and Ruby commands to develop your application
+
+## Security Notes
+
+- Workspace runs with privileged Docker permissions (necessary for certain development tasks)
+- Sensitive information is managed through Coder's secret management and not stored in the template
+
+## Contributing
+
+Contributions to improve this template are welcome. Please submit a pull request or open an issue to discuss proposed changes.
+
+## License
+
+[MIT License](LICENSE)
+
+---
+
+For more information on using Coder, visit the [official documentation](https://coder.com/docs).
