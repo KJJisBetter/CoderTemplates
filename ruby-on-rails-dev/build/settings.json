@@ -1,0 +1,26 @@
+{
+  "editor.tabSize": 2,
+  "editor.rulers": [80, 120],
+  "files.trimTrailingWhitespace": true,
+  "ruby.useLanguageServer": true,
+  "ruby.lint": {
+    "rubocop": true
+  },
+  "ruby.format": "rubocop",
+  "[ruby]": {
+    "editor.formatOnSave": true
+  },
+  "files.associations": {
+    "*.erb": "erb"
+  },
+  "[erb]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "aliariff.vscode-erb-beautify"
+  },
+  "emmet.includeLanguages": {
+    "erb": "html"
+  },
+  "beautify.language": {
+    "html": ["htm", "html", "erb"]
+  }
+}
