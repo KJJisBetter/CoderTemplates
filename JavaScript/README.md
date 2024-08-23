@@ -4,7 +4,7 @@
 
 This project showcases an advanced JavaScript development environment template for Coder, demonstrating proficiency in containerization, infrastructure as code, and modern web development practices. It provides a customizable, reproducible workspace tailored for JavaScript and Node.js development.
 
-![JavaScript and Node.js Logos](https://nodejs.org/static/images/logos/nodejs-new-pantone-black.svg)
+![JavaScript and Node.js Logos](https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Node.js_logo.svg/590px-Node.js_logo.svg.png?20170401104355)
 
 ## Key Features
 
