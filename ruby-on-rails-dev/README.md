@@ -118,7 +118,8 @@ This project showcases an advanced Ruby on Rails development environment templat
 Sensitive information and configuration options are managed through environment variables. Ensure these are set in your Coder deployment:
 
 - `TF_VAR_project_id`: Your project ID for Vault integration
-- Additional variables as needed (see `variables.tf`)
+- `HCP_CLIENT_ID`: Can be set as var, but is set as EnviromentFile in coder.service (running on systemd). This is requiered for Vault integration.
+- `HCP_CLIENT_SECRET`: Can be set as var, but is set as EnviromentFile in coder.service (running on systemd). This is requiered for Vault integration.
 
 ## Future Enhancements
 
