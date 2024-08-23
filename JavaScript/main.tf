@@ -9,6 +9,60 @@ terraform {
   }
 }
 
+# CPU options
+data "coder_parameter" "cpu" {
+  name         = "cpu"
+  display_name = "CPU"
+  description  = "CPU resources for your workspace"
+  type         = "number"
+  icon         = "/icon/cpu.svg"
+  default      = 1
+  mutable      = true
+  order        = 1
+
+  option {
+    name  = "1 CPU"
+    value = 1
+  }
+  option {
+    name  = "2 CPUs"
+    value = 2
+  }
+  option {
+    name  = "4 CPUs"
+    value = 4
+  }
+}
+
+# Memory options
+data "coder_parameter" "memory" {
+  name         = "memory"
+  display_name = "Memory"
+  description  = "Memory (in GB) for your workspace"
+  type         = "number"
+  icon         = "/icon/memory.svg"
+  default      = 2
+  mutable      = true
+  order        = 2
+
+  option {
+    name  = "1 GB"
+    value = 1
+  }
+  option {
+    name  = "2 GB"
+    value = 2
+  }
+  option {
+    name  = "4 GB"
+    value = 4
+  }
+  option {
+    name  = "6 GB"
+    value = 6
+  }
+}
+
 data "coder_parameter" "install_extensions" {
   name         = "install_extensions"
   display_name = "Install VS Code Extensions"
@@ -16,7 +70,7 @@ data "coder_parameter" "install_extensions" {
   type         = "bool"
   default      = false
   mutable      = true
-  order        = 1
+  order        = 3
 }
 
 data "coder_parameter" "install_custom_zsh_env" {
@@ -27,7 +81,7 @@ data "coder_parameter" "install_custom_zsh_env" {
   default      = false
   mutable      = true
   icon         = "/icon/terminal.svg"
-  order        = 2
+  order        = 4
 }
 
 data "coder_parameter" "nerd_font" {
@@ -37,7 +91,7 @@ data "coder_parameter" "nerd_font" {
   type         = "string"
   default      = "None"
   mutable      = true
-  order        = 3
+  order        = 5
   option {
     name  = "None"
     value = "None"
@@ -75,7 +129,7 @@ data "coder_parameter" "custom_nerd_font_path" {
   type         = "string"
   default      = ""  // Allow empty string as default
   mutable      = true
-  order        = 4
+  order        = 6
 }
 
 
@@ -141,64 +195,27 @@ resource "coder_agent" "main" {
   # if you don't want to display any information.
   # For basic resources, you can use the `coder stat` command.
   # If you need more control, you can write your own script.
-  metadata {
+   metadata {
     display_name = "CPU Usage"
-    key          = "0_cpu_usage"
+    key          = "cpu"
     script       = "coder stat cpu"
-    interval     = 10
+    interval     = 1
     timeout      = 1
   }
 
   metadata {
-    display_name = "RAM Usage"
-    key          = "1_ram_usage"
+    display_name = "Memory Usage"
+    key          = "mem"
     script       = "coder stat mem"
-    interval     = 10
+    interval     = 1
     timeout      = 1
   }
 
   metadata {
-    display_name = "Home Disk"
-    key          = "3_home_disk"
-    script       = "coder stat disk --path $${HOME}"
+    display_name = "Disk Usage"
+    key          = "disk"
+    script       = "coder stat disk"
     interval     = 60
-    timeout      = 1
-  }
-
-  metadata {
-    display_name = "CPU Usage (Host)"
-    key          = "4_cpu_usage_host"
-    script       = "coder stat cpu --host"
-    interval     = 10
-    timeout      = 1
-  }
-
-  metadata {
-    display_name = "Memory Usage (Host)"
-    key          = "5_mem_usage_host"
-    script       = "coder stat mem --host"
-    interval     = 10
-    timeout      = 1
-  }
-
-  metadata {
-    display_name = "Load Average (Host)"
-    key          = "6_load_host"
-    # get load avg scaled by number of cores
-    script   = <<EOT
-      echo "`cat /proc/loadavg | awk '{ print $1 }'` `nproc`" | awk '{ printf "%0.2f", $1/$2 }'
-    EOT
-    interval = 60
-    timeout  = 1
-  }
-
-  metadata {
-    display_name = "Swap Usage (Host)"
-    key          = "7_swap_host"
-    script       = <<EOT
-      free -b | awk '/^Swap/ { printf("%.1f/%.1f", $3/1024.0/1024.0/1024.0, $2/1024.0/1024.0/1024.0) }'
-    EOT
-    interval     = 10
     timeout      = 1
   }
 }
@@ -469,6 +486,8 @@ resource "docker_container" "workspace" {
   entrypoint = ["sh", "-c", replace(coder_agent.main.init_script, "/localhost|127\\.0\\.0\\.1/", "host.docker.internal")]
   env        = ["CODER_AGENT_TOKEN=${coder_agent.main.token}"]
   user       = data.coder_workspace_owner.me.name
+  cpu_shares = data.coder_parameter.cpu.value * 1024
+  memory     = data.coder_parameter.memory.value * 1024
   host {
     host = "host.docker.internal"
     ip   = "host-gateway"
