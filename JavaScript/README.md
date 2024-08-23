@@ -1,48 +1,56 @@
----
-display_name: Docker Containers
-description: Provision Docker containers as Coder workspaces
-icon: ../../../site/static/icon/docker.png
-maintainer_github: coder
-verified: true
-tags: [docker, container]
----
+# Advanced Docker Development Environment for Coder
 
-# Remote Development on Docker Containers
+## Overview
 
-Provision Docker containers as [Coder workspaces](https://coder.com/docs/workspaces) with this example template.
+This project showcases an advanced Docker-based development environment template for Coder, demonstrating proficiency in containerization, infrastructure as code, and DevOps practices. It provides a customizable, reproducible workspace that can be easily deployed and scaled.
 
-<!-- TODO: Add screenshot -->
+## Key Features
 
-## Prerequisites
+- **Containerized Workspaces**: Utilizes Docker to create isolated, consistent development environments.
+- **Persistent Home Directory**: Implements Docker volumes to maintain user data across workspace restarts.
+- **Customizable Environment**: Offers options for installing custom Zsh environments and Nerd Fonts.
+- **VS Code Integration**: Seamlessly integrates with VS Code, including automatic extension installation and configuration.
+- **Resource Monitoring**: Implements custom scripts for monitoring CPU, RAM, and disk usage within the workspace.
 
-### Infrastructure
+## Technical Highlights
 
-The VM you run Coder on must have a running Docker socket and the `coder` user must be added to the Docker group:
+### Infrastructure as Code
 
-```sh
-# Add coder user to Docker group
-sudo adduser coder docker
+- Utilizes Terraform for provisioning and managing the development environment.
+- Demonstrates advanced usage of Coder's Terraform provider.
 
-# Restart Coder server
-sudo systemctl restart coder
+### Docker Configuration
 
-# Test Docker
-sudo -u coder docker ps
-```
+- Custom Dockerfile that sets up a robust development environment:
+  - Based on Ubuntu
+  - Installs essential development tools
+  - Sets up a non-root user with sudo privileges
+  - Installs Node.js using NVM for version management
+  - Configures Zsh with custom plugins (optional)
+  - Installs global Node.js packages like TypeScript and Nodemon
 
-## Architecture
+### Workspace Customization
 
-This template provisions the following resources:
+- Offers parameters for installing VS Code extensions and custom Zsh environments.
+- Provides options for installing and configuring Nerd Fonts.
 
-- Docker image (built by Docker socket and kept locally)
-- Docker container pod (ephemeral)
-- Docker volume (persistent on `/home/coder`)
+### Security Considerations
 
-This means, when the workspace restarts, any tools or files outside of the home directory are not persisted. To pre-bake tools into the workspace (e.g. `python3`), modify the container image. Alternatively, individual developers can [personalize](https://coder.com/docs/dotfiles) their workspaces with dotfiles.
+- Implements proper user permissions and sudo access.
+- Avoids hardcoding sensitive information.
 
-> **Note**
-> This template is designed to be a starting point! Edit the Terraform to extend the template to support your use case.
+## Skills Demonstrated
 
-### Editing the image
+- Docker containerization
+- Terraform and Infrastructure as Code
+- Shell scripting (Bash/Zsh)
+- DevOps practices
+- Environment customization and configuration management
+- Integration with development tools (VS Code, Node.js)
 
-Edit the `Dockerfile` and run `coder templates push` to update workspaces.
+## Future Enhancements
+
+- Implement multi-stage Docker builds for optimized images
+- Add support for additional development stacks (Python, Java, etc.)
+- Integrate with CI/CD pipelines for automated testing and deployment
+- Implement secret management for sensitive configuration
