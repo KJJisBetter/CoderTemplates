@@ -21,6 +21,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libreadline-dev \
     libffi-dev \
     libgdbm-dev \
+    fontconfig \
     && rm -rf /var/lib/apt/lists/*
 
 # Create user and set up sudo

@@ -301,9 +301,9 @@ resource "coder_agent" "main" {
   }
 }
 
-resource "coder_script" "install_ruby_extensions" {
+resource "coder_script" "vscode_setup" {
   agent_id     = coder_agent.main.id
-  display_name = "Install Ruby Extensions and Configure VS Code"
+  display_name = "Install VS Code Extensions, Fonts, and Configure Settings"
   run_on_start = true
   depends_on   = [coder_agent.main, coder_script.rails_setup]
   icon         = "/icon/vscode.svg"
@@ -315,7 +315,7 @@ log_message() {
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a /tmp/vscode_setup.log
 }
 
-log_message "Starting VS Code setup and Ruby extensions installation..."
+log_message "Starting VS Code setup, font installation, and extension installation..."
 
 # Wait for main setup to finish
 log_message "Waiting for main setup to complete..."
@@ -345,33 +345,109 @@ if [ $? -ne 0 ]; then
 fi
 sleep 10  # Give code-server a moment to fully initialize
 
-# Function to install extensions
-install_extensions() {
-  if [ "${data.coder_parameter.install_ruby_extensions.value}" = "true" ]; then
-    log_message "Installing Ruby extensions..."
-    local extensions=(
-      "rebornix.Ruby"
-      "mbessey.vscode-rufo"
-      "aliariff.vscode-erb-beautify"
-      "vortizhe.simple-ruby-erb"
-      "Shopify.ruby-lsp"
-      "sorbet.sorbet-vscode-extension"
-    )
-    
-    for ext in "$${extensions[@]}"; do
-      log_message "Installing extension: $ext"
-      if ! code-server --install-extension "$ext" --force; then
-        log_message "Failed to install $ext, continuing with next extension"
-      fi
-    done
-    log_message "Extension installation process completed"
-  else
-    log_message "Skipping Ruby extensions installation as it was not requested."
-  fi
-}
+# Font Installation
+SELECTED_FONT="${data.coder_parameter.nerd_font.value}"
+INSTALL_FONT=false
 
-# Install extensions
-install_extensions
+if [ "${data.coder_parameter.install_custom_zsh_env.value}" = "true" ]; then
+  log_message "Zsh is selected. Setting it as the default shell..."
+  sudo chsh -s $(which zsh) ${data.coder_workspace_owner.me.name}
+  log_message "Zsh has been set as the default shell."
+  INSTALL_FONT=true
+  # If no font was selected, default to FiraCode for Zsh
+  if [ "$SELECTED_FONT" = "None" ]; then
+    log_message "No nerd font selected for custom zsh environment. Setting default nerd font (FiraCode)"
+    SELECTED_FONT="FiraCode"
+  fi
+else
+  log_message "Using Bash as the default shell..."
+  # Only install font if explicitly selected
+  if [ "$SELECTED_FONT" != "None" ]; then
+    INSTALL_FONT=true
+  fi
+fi
+
+# Install selected Nerd Font if required
+if [ "$INSTALL_FONT" = true ]; then
+  if [ "$SELECTED_FONT" = "custom" ]; then
+    FONT_PATH="${data.coder_parameter.custom_nerd_font_path.value}"
+    # Validate custom font path
+    if [[ ! "$FONT_PATH" =~ ^patched-fonts/.+\.ttf$ ]]; then
+      log_message "Error: Invalid custom font path. It should start with 'patched-fonts/' and end with '.ttf'"
+      exit 1
+    fi
+  else
+    case "$SELECTED_FONT" in
+      "FiraCode")
+        FONT_PATH="patched-fonts/FiraCode/Medium/FiraCodeNerdFontMono-Medium.ttf"
+        ;;
+      "JetBrainsMono")
+        FONT_PATH="patched-fonts/JetBrainsMono/Ligatures/Medium/JetBrainsMonoNerdFontMono-Medium.ttf"
+        ;;
+      "Hack")
+        FONT_PATH="patched-fonts/Hack/Regular/HackNerdFont-Regular.ttf"
+        ;;
+      "SourceCodePro")
+        FONT_PATH="patched-fonts/SourceCodePro/Medium/SauceCodeProNerdFontMono-Medium.ttf"
+        ;;
+      "UbuntuMono")
+        FONT_PATH="patched-fonts/UbuntuMono/Regular/UbuntuMonoNerdFont-Regular.ttf"
+        ;;
+      *)
+        log_message "Unknown font selected. Using FiraCode as default."
+        FONT_PATH="patched-fonts/FiraCode/Medium/FiraCodeNerdFontMono-Medium.ttf"
+        ;;
+    esac
+  fi
+  FONT_URL="https://github.com/ryanoasis/nerd-fonts/raw/master/$FONT_PATH"
+  FONT_FILE=$(basename "$FONT_PATH")
+  log_message "Installing Nerd Font: $FONT_FILE"
+  mkdir -p ~/.local/share/fonts
+  curl -fLo ~/.local/share/fonts/"$FONT_FILE" "$FONT_URL"
+  fc-cache -f -v
+
+  # Extract font name without "NerdFont" suffix and format it properly
+  FONT_NAME=$(echo "$FONT_FILE" | sed -E 's/(.*)NerdFont.*\.ttf/\1/' | sed -E 's/([a-z])([A-Z])/\1 \2/g' | sed -E 's/([A-Z])([A-Z][a-z])/\1 \2/g' | sed 's/^ *//' | sed 's/ *$//' | sed 's/Fira Code/FiraCode/')
+  echo "FONT_NAME=$FONT_NAME" > /tmp/font_name
+  log_message "Extracted font name: $FONT_NAME"
+else
+  log_message "No font installation required."
+fi
+
+
+# Install Ruby extensions
+if [ "${data.coder_parameter.install_ruby_extensions.value}" = "true" ]; then
+  log_message "Installing Ruby extensions..."
+
+  # Function to install an extension if not already installed
+  install_extension() {
+    extension=$1
+    if ! code-server --list-extensions | grep -q "$extension"; then
+      log_message "Installing extension: $extension"
+      code-server --install-extension "$extension" || log_message "Failed to install $extension extension"
+    else
+      log_message "Extension already installed: $extension"
+    fi
+  }
+
+  extensions=(
+    "rebornix.Ruby"
+    "mbessey.vscode-rufo"
+    "aliariff.vscode-erb-beautify"
+    "vortizhe.simple-ruby-erb"
+    "Shopify.ruby-lsp"
+    "sorbet.sorbet-vscode-extension"
+  )
+  
+  # Install extensions
+  for extension in "$${extensions[@]}"; do
+    install_extension "$extension"
+  done
+
+  log_message "Extension installation completed."
+else
+  log_message "Extension installation skipped as per user preference."
+fi
 
 # Apply VS Code settings
 log_message "Applying VS Code settings..."
@@ -380,8 +456,9 @@ SETTINGS_FILE="$HOME/.local/share/code-server/User/settings.json"
 # Determine font settings
 FONT_SETTINGS='"editor.fontFamily": "monospace",'
 if [ -f "/tmp/font_name" ]; then
-  FONT_NAME=$(cat /tmp/font_name)
+  FONT_NAME=$(cat /tmp/font_name | cut -d'=' -f2)
   FONT_SETTINGS='"editor.fontFamily": "'"$FONT_NAME"' Nerd Font, monospace",'
+  log_message "Applied font settings: $FONT_SETTINGS"
 fi
 
 # Create or update settings file
@@ -419,7 +496,7 @@ cat > "$SETTINGS_FILE" <<EOF
 EOF
 
 log_message "VS Code settings applied successfully."
-log_message "VS Code setup and Ruby extensions installation completed."
+log_message "VS Code setup, font installation, and extension installation completed."
 touch /tmp/vscode_setup_done
 EOT
 }
