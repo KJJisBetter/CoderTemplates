@@ -48,8 +48,16 @@ RUN if [ "$DEV_ENV" = "flask" ]; then \
     elif [ "$DEV_ENV" = "django" ]; then \
         /home/${USER}/${VENV_NAME}/bin/pip install --no-cache-dir \
         django \
+        djangorestframework \
+        django-cors-headers \
+        django-filter \
+        django-extensions \
+        django-storages \
+        pytest-django \
+        django-redis \
+        django-debug-toolbar \
+        django-environ \
         gunicorn \
-        pytest \
         black \
         flake8; \
     elif [ "$DEV_ENV" = "data_science" ]; then \
@@ -60,6 +68,10 @@ RUN if [ "$DEV_ENV" = "flask" ]; then \
         seaborn \
         scipy \
         scikit-learn \
+        tensorflow \
+        keras \
+        plotly \
+        ggplot \
         jupyter; \
     elif [ "$DEV_ENV" = "machine_learning" ]; then \
         /home/${USER}/${VENV_NAME}/bin/pip install --no-cache-dir \
@@ -69,6 +81,10 @@ RUN if [ "$DEV_ENV" = "flask" ]; then \
         scikit-learn \
         tensorflow \
         torch \
+        scipy \
+        seaborn \
+        keras \
+        nltk \
         jupyter; \
     fi
 
