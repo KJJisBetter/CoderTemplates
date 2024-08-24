@@ -9,60 +9,6 @@ terraform {
   }
 }
 
-# CPU options
-data "coder_parameter" "cpu" {
-  name         = "cpu"
-  display_name = "CPU"
-  description  = "CPU resources for your workspace"
-  type         = "number"
-  icon         = "/icon/cpu.svg"
-  default      = 1
-  mutable      = true
-  order        = 1
-
-  option {
-    name  = "1 CPU"
-    value = 1
-  }
-  option {
-    name  = "2 CPUs"
-    value = 2
-  }
-  option {
-    name  = "4 CPUs"
-    value = 4
-  }
-}
-
-# Memory options
-data "coder_parameter" "memory" {
-  name         = "memory"
-  display_name = "Memory"
-  description  = "Memory (in GB) for your workspace"
-  type         = "number"
-  icon         = "/icon/memory.svg"
-  default      = 2
-  mutable      = true
-  order        = 2
-
-  option {
-    name  = "1 GB"
-    value = 1
-  }
-  option {
-    name  = "2 GB"
-    value = 2
-  }
-  option {
-    name  = "4 GB"
-    value = 4
-  }
-  option {
-    name  = "6 GB"
-    value = 6
-  }
-}
-
 data "coder_parameter" "install_extensions" {
   name         = "install_extensions"
   display_name = "Install VS Code Extensions"
@@ -486,8 +432,6 @@ resource "docker_container" "workspace" {
   entrypoint = ["sh", "-c", replace(coder_agent.main.init_script, "/localhost|127\\.0\\.0\\.1/", "host.docker.internal")]
   env        = ["CODER_AGENT_TOKEN=${coder_agent.main.token}"]
   user       = data.coder_workspace_owner.me.name
-  cpu_shares = data.coder_parameter.cpu.value * 1024
-  memory     = data.coder_parameter.memory.value * 1024
   host {
     host = "host.docker.internal"
     ip   = "host-gateway"
