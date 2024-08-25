@@ -5,6 +5,7 @@ ARG USER
 ARG DEV_ENV=general
 ARG WORKSPACE_NAME
 ARG VENV_NAME=venv
+ARG INSTALL_ZSH=false
 
 # Update and install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -107,6 +108,12 @@ RUN if [ "$DEV_ENV" = "general" ]; then \
         echo "echo 'Data Science environment activated'" >> /home/${USER}/.bashrc; \
     elif [ "$DEV_ENV" = "machine_learning" ]; then \
         echo "echo 'Machine Learning environment activated'" >> /home/${USER}/.bashrc; \
+    fi
+
+# Conditionally install Zsh setup
+RUN if [ "$INSTALL_ZSH" = "true" ]; then \
+        curl -o- https://raw.githubusercontent.com/KJJisBetter/personal-zsh-script/master/setup_zsh_env.sh | sudo bash && \
+        sudo chsh -s $(which zsh) ${USER}; \
     fi
 
 # Set the working directory based on DEV_ENV

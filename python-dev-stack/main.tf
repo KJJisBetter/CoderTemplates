@@ -71,9 +71,21 @@ data "coder_parameter" "venv_name" {
   order        = 3
 }
 
+data "coder_parameter" "install_custom_zsh_env" {
+  name         = "install_custom_zsh_env"
+  display_name = "Install custom Zsh environment"
+  description  = "Install Zsh with Oh My Posh, Zinit, fzf, zoxide, eza, bat, and more. Sets up a productive shell with autocompletions, syntax highlighting, and git integrations."
+  type         = "bool"
+  default      = false
+  mutable      = true
+  icon         = "/icon/terminal.svg"
+  order        = 4
+}
+
 locals {
   username = data.coder_workspace_owner.me.name
   workspace_dir = "/home/${local.username}/${data.coder_workspace.me.name}"
+  home_dir = "/home/${local.username}"
 }
 
 data "coder_provisioner" "me" {
@@ -99,7 +111,7 @@ resource "coder_agent" "main" {
     fi
 
     # Install the latest code-server.
-    curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/tmp/code-server
+    curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone
 
     # Create a script to activate the virtual environment
     cat <<EOF > ~/activate_venv.sh
@@ -123,7 +135,7 @@ EOF
     echo "cat ~/welcome.txt" >> ~/.bashrc
 
     # Start code-server in the background.
-    /tmp/code-server/bin/code-server --auth none --port 13337 >/tmp/code-server.log 2>&1 &
+    code-server --auth none --port 13337 >/tmp/code-server.log 2>&1 &
   EOT
 
 
@@ -205,6 +217,126 @@ EOF
   }
 }
 
+
+resource "coder_script" "vscode_setup" {
+  agent_id     = coder_agent.main.id
+  display_name = "Install VS Code Extensions and Configure Settings"
+  run_on_start = true
+  icon         = "/icon/vscode.svg"
+  script = <<EOT
+#!/bin/bash
+set -euo pipefail
+
+log_message() {
+  echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a /tmp/vscode_setup.log
+}
+
+log_message "Starting VS Code setup and extension installation..."
+
+# Ensure code-server is in the PATH and running
+export PATH="$HOME/.local/bin:$PATH"
+
+log_message "Waiting for code-server to be ready..."
+timeout 60s bash -c 'until pgrep -f code-server > /dev/null; do sleep 2; done'
+if [ $? -ne 0 ]; then
+  log_message "Timeout waiting for code-server to start. Exiting."
+  exit 1
+fi
+sleep 10  # Give code-server a moment to fully initialize
+
+# Install Python extensions
+log_message "Installing Python extensions..."
+
+# Function to install an extension if not already installed
+install_extension() {
+  extension=$1
+  if ! code-server --list-extensions | grep -q "$extension"; then
+    log_message "Installing extension: $extension"
+    code-server --install-extension "$extension" || log_message "Failed to install $extension extension"
+  else
+    log_message "Extension already installed: $extension"
+  fi
+}
+
+# Base extensions for all Python environments
+base_extensions=(
+  "ms-python.python"
+  "ms-python.vscode-pylance"
+  "njpwerner.autodocstring"
+  "kevinrose.vsc-python-indent"
+  "littlefoxteam.vscode-python-test-adapter"
+  "njqdev.vscode-python-typehint"
+  "visualstudioexptteam.vscodeintellicode"
+  "aaron-bond.better-comments"
+  "almenon.arepl"
+  "deerawan.vscode-dash"
+)
+
+# Install base extensions
+for extension in "$${base_extensions[@]}"; do
+  install_extension "$extension"
+done
+
+# Additional extensions based on the development environment
+case "${data.coder_parameter.development_environment.value}" in
+  "flask")
+    install_extension "wholroyd.jinja"
+    ;;
+  "django")
+    install_extension "batisteo.vscode-django"
+    ;;
+  "data_science" | "machine_learning")
+    install_extension "ms-toolsai.jupyter"
+    install_extension "ms-toolsai.datascience"
+    ;;
+esac
+
+log_message "Extension installation completed."
+
+# Apply VS Code settings
+log_message "Applying VS Code settings..."
+SETTINGS_FILE="$HOME/.local/share/code-server/User/settings.json"
+
+# Create or update settings file
+cat > "$SETTINGS_FILE" <<EOF
+{
+  "workbench.colorTheme": "Default Dark+",
+  "editor.fontSize": 14,
+  "terminal.integrated.fontSize": 14,
+  "editor.fontFamily": "monospace",
+  "editor.tabSize": 4,
+  "editor.rulers": [80, 120],
+  "files.trimTrailingWhitespace": true,
+  "python.languageServer": "Pylance",
+  "python.formatting.provider": "black",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.linting.flake8Enabled": true,
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
+  "autoDocstring.docstringFormat": "google",
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true,
+  "editor.suggestSelection": "first",
+  "vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
+  "arepl.pythonExePath": "${data.coder_parameter.venv_name.value}/bin/python",
+  "python.defaultInterpreterPath": "${data.coder_parameter.venv_name.value}/bin/python"
+}
+EOF
+
+log_message "VS Code settings applied successfully."
+log_message "VS Code setup and extension installation completed."
+touch /tmp/vscode_setup_done
+EOT
+}
+
+
 resource "coder_app" "code-server" {
   agent_id     = coder_agent.main.id
   slug         = "code-server"
@@ -258,6 +390,7 @@ resource "docker_image" "main" {
       DEV_ENV = data.coder_parameter.development_environment.value
       WORKSPACE_NAME = data.coder_workspace.me.name
       VENV_NAME = data.coder_parameter.venv_name.value
+      INSTALL_ZSH = data.coder_parameter.install_custom_zsh_env.value
     }
   }
   triggers = {
@@ -280,7 +413,7 @@ resource "docker_container" "workspace" {
     ip   = "host-gateway"
   }
   volumes {
-    container_path = local.workspace_dir
+    container_path = local.home_dir
     volume_name    = docker_volume.home_volume.name
     read_only      = false
   }
