@@ -82,6 +82,54 @@ data "coder_parameter" "install_custom_zsh_env" {
   order        = 4
 }
 
+data "coder_parameter" "nerd_font" {
+  name         = "nerd_font"
+  display_name = "Nerd Font"
+  description  = "Select a Nerd Font to install (required if custom Zsh is enabled, optional otherwise)"
+  type         = "string"
+  default      = "None"
+  mutable      = true
+  order        = 5
+  option {
+    name  = "None"
+    value = "None"
+  }
+  option {
+    name  = "Fira Code"
+    value = "FiraCode"
+  }
+  option {
+    name  = "JetBrains Mono"
+    value = "JetBrainsMono"
+  }
+  option {
+    name  = "Hack"
+    value = "Hack"
+  }
+  option {
+    name  = "Source Code Pro"
+    value = "SourceCodePro"
+  }
+  option {
+    name  = "Ubuntu Mono"
+    value = "UbuntuMono"
+  }
+  option {
+    name  = "Custom"
+    value = "custom"
+  }
+}
+
+data "coder_parameter" "custom_nerd_font_path" {
+  name         = "custom_nerd_font_path"
+  display_name = "Custom Nerd Font Path"
+  description  = "Enter the path to the .ttf file from the Nerd Fonts repository (required if Custom font is selected)"
+  type         = "string"
+  default      = ""  // Allow empty string as default
+  mutable      = true
+  order        = 6
+}
+
 locals {
   username = data.coder_workspace_owner.me.name
   workspace_dir = "/home/${local.username}/${data.coder_workspace.me.name}"
@@ -111,7 +159,7 @@ resource "coder_agent" "main" {
     fi
 
     # Install the latest code-server.
-    curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone
+    curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone                           
 
     # Create a script to activate the virtual environment
     cat <<EOF > ~/activate_venv.sh
@@ -135,7 +183,7 @@ EOF
     echo "cat ~/welcome.txt" >> ~/.bashrc
 
     # Start code-server in the background.
-    code-server --auth none --port 13337 >/tmp/code-server.log 2>&1 &
+    /home/${data.coder_workspace_owner.me.name}/.local/bin/code-server --auth none --port 13337 >/tmp/code-server.log 2>&1 &
   EOT
 
 
@@ -244,6 +292,75 @@ if [ $? -ne 0 ]; then
 fi
 sleep 10  # Give code-server a moment to fully initialize
 
+# Font Installation
+SELECTED_FONT="${data.coder_parameter.nerd_font.value}"
+INSTALL_FONT=false
+
+if [ "${data.coder_parameter.install_custom_zsh_env.value}" = "true" ]; then
+  log_message "Zsh is selected. Setting it as the default shell..."
+  sudo chsh -s $(which zsh) ${data.coder_workspace_owner.me.name}
+  log_message "Zsh has been set as the default shell."
+  INSTALL_FONT=true
+  # If no font was selected, default to FiraCode for Zsh
+  if [ "$SELECTED_FONT" = "None" ]; then
+    log_message "No nerd font selected for custom zsh environment. Setting default nerd font (FiraCode)"
+    SELECTED_FONT="FiraCode"
+  fi
+else
+  log_message "Using Bash as the default shell..."
+  # Only install font if explicitly selected
+  if [ "$SELECTED_FONT" != "None" ]; then
+    INSTALL_FONT=true
+  fi
+fi
+
+# Install selected Nerd Font if required
+if [ "$INSTALL_FONT" = true ]; then
+  if [ "$SELECTED_FONT" = "custom" ]; then
+    FONT_PATH="${data.coder_parameter.custom_nerd_font_path.value}"
+    # Validate custom font path
+    if [[ ! "$FONT_PATH" =~ ^patched-fonts/.+\.ttf$ ]]; then
+      log_message "Error: Invalid custom font path. It should start with 'patched-fonts/' and end with '.ttf'"
+      exit 1
+    fi
+  else
+    case "$SELECTED_FONT" in
+      "FiraCode")
+        FONT_PATH="patched-fonts/FiraCode/Medium/FiraCodeNerdFontMono-Medium.ttf"
+        ;;
+      "JetBrainsMono")
+        FONT_PATH="patched-fonts/JetBrainsMono/Ligatures/Medium/JetBrainsMonoNerdFontMono-Medium.ttf"
+        ;;
+      "Hack")
+        FONT_PATH="patched-fonts/Hack/Regular/HackNerdFont-Regular.ttf"
+        ;;
+      "SourceCodePro")
+        FONT_PATH="patched-fonts/SourceCodePro/Medium/SauceCodeProNerdFontMono-Medium.ttf"
+        ;;
+      "UbuntuMono")
+        FONT_PATH="patched-fonts/UbuntuMono/Regular/UbuntuMonoNerdFont-Regular.ttf"
+        ;;
+      *)
+        log_message "Unknown font selected. Using FiraCode as default."
+        FONT_PATH="patched-fonts/FiraCode/Medium/FiraCodeNerdFontMono-Medium.ttf"
+        ;;
+    esac
+  fi
+  FONT_URL="https://github.com/ryanoasis/nerd-fonts/raw/master/$FONT_PATH"
+  FONT_FILE=$(basename "$FONT_PATH")
+  log_message "Installing Nerd Font: $FONT_FILE"
+  mkdir -p ~/.local/share/fonts
+  curl -fLo ~/.local/share/fonts/"$FONT_FILE" "$FONT_URL"
+  fc-cache -f -v
+
+  # Extract font name without "NerdFont" suffix and format it properly
+  FONT_NAME=$(echo "$FONT_FILE" | sed -E 's/(.*)NerdFont.*\.ttf/\1/' | sed -E 's/([a-z])([A-Z])/\1 \2/g' | sed -E 's/([A-Z])([A-Z][a-z])/\1 \2/g' | sed 's/^ *//' | sed 's/ *$//' | sed 's/Fira Code/FiraCode/')
+  echo "FONT_NAME=$FONT_NAME" > /tmp/font_name
+  log_message "Extracted font name: $FONT_NAME"
+else
+  log_message "No font installation required."
+fi
+
 # Install Python extensions
 log_message "Installing Python extensions..."
 
@@ -261,7 +378,6 @@ install_extension() {
 # Base extensions for all Python environments
 base_extensions=(
   "ms-python.python"
-  "ms-python.vscode-pylance"
   "njpwerner.autodocstring"
   "kevinrose.vsc-python-indent"
   "littlefoxteam.vscode-python-test-adapter"
@@ -293,6 +409,14 @@ esac
 
 log_message "Extension installation completed."
 
+# Determine font settings
+FONT_SETTINGS='"editor.fontFamily": "monospace",'
+if [ -f "/tmp/font_name" ]; then
+  FONT_NAME=$(cat /tmp/font_name | cut -d'=' -f2)
+  FONT_SETTINGS='"editor.fontFamily": "'"$FONT_NAME"' Nerd Font, monospace",'
+  log_message "Applied font settings: $FONT_SETTINGS"
+fi
+
 # Apply VS Code settings
 log_message "Applying VS Code settings..."
 SETTINGS_FILE="$HOME/.local/share/code-server/User/settings.json"
@@ -303,15 +427,12 @@ cat > "$SETTINGS_FILE" <<EOF
   "workbench.colorTheme": "Default Dark+",
   "editor.fontSize": 14,
   "terminal.integrated.fontSize": 14,
-  "editor.fontFamily": "monospace",
+  $FONT_SETTINGS
   "editor.tabSize": 4,
   "editor.rulers": [80, 120],
   "files.trimTrailingWhitespace": true,
-  "python.languageServer": "Pylance",
+  "python.languageServer": "Default",
   "python.formatting.provider": "black",
-  "python.linting.enabled": true,
-  "python.linting.pylintEnabled": true,
-  "python.linting.flake8Enabled": true,
   "[python]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
