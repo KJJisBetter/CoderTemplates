@@ -1,48 +1,111 @@
----
-display_name: Docker Containers
-description: Provision Docker containers as Coder workspaces
-icon: ../../../site/static/icon/docker.png
-maintainer_github: coder
-verified: true
-tags: [docker, container]
----
+# Advanced Python Development Environment for Coder
 
-# Remote Development on Docker Containers
+## Overview
 
-Provision Docker containers as [Coder workspaces](https://coder.com/docs/workspaces) with this example template.
+This project provides an advanced Python development environment template for Coder, demonstrating proficiency in containerization, infrastructure as code, and modern Python development practices. It offers a customizable, reproducible workspace tailored for Python development across various specializations.
 
-<!-- TODO: Add screenshot -->
+<div align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/c/c3/Python-logo-notext.svg" width="100" alt="Python Logo">
+</div>
+
+## Key Features
+
+- **Containerized Python Workspace**: Utilizes Docker to create an isolated, consistent development environment for Python.
+- **Customizable Python Version**: Allows selection of specific Python versions for project needs.
+- **Multiple Development Environments**: Supports various Python ecosystems including general Python, Flask, Django, Data Science, and Machine Learning.
+- **Virtual Environment Integration**: Automatically sets up a Python virtual environment for clean dependency management.
+- **Persistent Home Directory**: Implements Docker volumes to maintain user data and project files across workspace restarts.
+- **Customizable Shell Environment**: Offers options for installing a custom Zsh environment and Nerd Fonts.
+- **VS Code Integration**: Seamlessly integrates with VS Code, including automatic installation of Python-related extensions.
+- **Resource Monitoring**: Implements custom scripts for monitoring CPU, RAM, and disk usage within the workspace.
 
 ## Prerequisites
 
-### Infrastructure
+1. A running Coder server (see [Coder's documentation](https://coder.com/docs/v2/latest/install) for installation instructions)
+2. Docker installed and configured on the Coder server
 
-The VM you run Coder on must have a running Docker socket and the `coder` user must be added to the Docker group:
+## Usage
 
-```sh
-# Add coder user to Docker group
-sudo adduser coder docker
+1. Import this template into your Coder deployment
+2. Create a new workspace using this template
+3. Configure workspace options:
+   - Python version
+   - Development environment (General, Flask, Django, Data Science, Machine Learning)
+   - Virtual environment name
+   - Custom Zsh environment
+   - Nerd Font selection
 
-# Restart Coder server
-sudo systemctl restart coder
+## Technical Highlights
 
-# Test Docker
-sudo -u coder docker ps
-```
+### Infrastructure as Code
 
-## Architecture
+- Utilizes Terraform for provisioning and managing the development environment.
+- Demonstrates advanced usage of Coder's Terraform provider.
 
-This template provisions the following resources:
+### Docker Configuration
 
-- Docker image (built by Docker socket and kept locally)
-- Docker container pod (ephemeral)
-- Docker volume (persistent on `/home/coder`)
+- Custom Dockerfile that sets up a robust Python development environment:
+  - Based on official Python image with customizable version
+  - Installs essential development tools
+  - Sets up a non-root user with sudo privileges
+  - Configures a Python virtual environment
+  - Installs environment-specific packages (e.g., Flask, Django, data science libraries)
+  - Configures Zsh with custom plugins (optional)
 
-This means, when the workspace restarts, any tools or files outside of the home directory are not persisted. To pre-bake tools into the workspace (e.g. `python3`), modify the container image. Alternatively, individual developers can [personalize](https://coder.com/docs/dotfiles) their workspaces with dotfiles.
+### Workspace Customization
 
-> **Note**
-> This template is designed to be a starting point! Edit the Terraform to extend the template to support your use case.
+- Offers parameters for installing VS Code extensions and custom Zsh environments.
+- Provides options for installing and configuring Nerd Fonts.
+- Allows selection of specific Python development environments.
 
-### Editing the image
+### VS Code Integration
 
-Edit the `Dockerfile` and run `coder templates push` to update workspaces.
+- Automatically installs and configures Python-related VS Code extensions.
+- Sets up optimal editor settings for Python development.
+
+## Development Workflow
+
+1. Connect to your workspace using SSH or the web IDE
+2. Your Python environment will be pre-configured in the home directory
+3. Use standard Python commands and tools specific to your chosen environment
+4. Leverage installed VS Code extensions for enhanced productivity
+
+## Security Considerations
+
+- Implements proper user permissions and sudo access within the container.
+- Sensitive information is managed through Coder's secret management and not stored in the template.
+
+## Customization
+
+### Modifying the Template
+
+1. Edit the `main.tf` file to change the Terraform configuration
+2. Modify the `Dockerfile` in the `build` directory to adjust the container setup
+3. Update the template in your Coder deployment:
+
+   ```bash
+   coder template push python-dev-env
+   ```
+
+   Replace `python-dev-env` with your template name
+
+4. Create a new workspace or update an existing one to use the new template version
+
+## Future Enhancements
+
+- Implement multi-stage Docker builds for optimized images
+- Add support for additional Python frameworks and libraries
+- Integrate with CI/CD pipelines for automated testing and deployment
+- Implement automatic backup and restore for project files
+
+## Contributing
+
+Contributions to improve this template are welcome. Please submit a pull request or open an issue to discuss proposed changes.
+
+## License
+
+[MIT License](LICENSE)
+
+---
+
+For more information on using Coder, visit the [official documentation](https://coder.com/docs).
