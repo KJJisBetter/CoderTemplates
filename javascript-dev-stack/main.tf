@@ -108,11 +108,11 @@ resource "coder_agent" "main" {
 
     # Install the latest code-server
     log_message "Installing latest version of code-server"
-    curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone
+    curl -fsSL https://code-server.dev/install.sh | sh
 
     # Start code-server
     log_message "Starting code-server"
-    /home/${data.coder_workspace_owner.me.name}/.local/bin/code-server --auth none --port 13337 >/tmp/code-server.log 2>&1 &
+    code-server --auth none --port 13337 >/tmp/code-server.log 2>&1 &
 
     # Wait for code-server to start (with timeout)
     log_message "Waiting for code-server to start..."
@@ -275,7 +275,7 @@ fi
 # Install extensions if requested
 if [ "${data.coder_parameter.install_extensions.value}" = "true" ]; then
   log_message "Installing VS Code extensions..."
-  
+
   # Function to install an extension if not already installed
   install_extension() {
     extension=$1
