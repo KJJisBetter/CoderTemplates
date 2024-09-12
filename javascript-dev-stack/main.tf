@@ -297,12 +297,35 @@ if [ "${data.coder_parameter.install_extensions.value}" = "true" ]; then
     ms-vscode.vscode-typescript-tslint-plugin
     eg2.vscode-npm-script
     hwencc.html-tag-wrapper
+    ritwickdey.liveserver
   )
 
   # Install extensions
   for extension in "$${extensions[@]}"; do
     install_extension "$extension"
   done
+
+  # Create extensions.json for .vscode (extensions only)
+  VSCODE_DIR="$HOME/${data.coder_workspace.me.name}/.vscode"
+  mkdir -p "$VSCODE_DIR"
+  VSCODE_EXTENSIONS_FILE="$VSCODE_DIR/extensions.json"
+
+  # Generate the content for extensions.json with proper formatting
+  generate_extensions_json() {
+    local content="{\n  \"recommendations\": [\n"
+    for ext in "$${extensions[@]}"; do
+      content+="    \"$ext\",\n"
+    done
+    # Remove the trailing comma and newline
+    content=$(echo -e "$content" | sed '$ s/,$//')
+    content+="\n  ]\n}"
+    echo -e "$content"
+  }
+
+  # Write the generated content to the file
+  generate_extensions_json > "$VSCODE_EXTENSIONS_FILE"
+
+  log_message "Created extensions.json with recommended extensions in $VSCODE_DIR"
 
   log_message "Extension installation completed."
 else
